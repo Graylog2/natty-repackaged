@@ -3,7 +3,7 @@
   <groupId>org.graylog2.repackaged</groupId>
   <artifactId>natty</artifactId>
   <packaging>jar</packaging>
-  <version>0.8-1</version>
+  <version>0.8-2-SNAPSHOT</version>
   <name>Natty Date Parser (repackaged)</name>
   <description>Repackaged version of Natty (natural language date parser)</description>
   <url>http://natty.joestelmach.com</url>
