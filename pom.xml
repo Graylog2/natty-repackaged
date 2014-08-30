@@ -217,6 +217,50 @@
               </execution>
             </executions>
           </plugin>
+
+          <!-- Repackage dependencies -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>2.3</version>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>shade</goal>
+                </goals>
+                <configuration>
+                  <minimizeJar>true</minimizeJar>
+                  <relocations>
+                    <relocation>
+                      <pattern>antlr</pattern>
+                      <shadedPattern>com.joestelmach.natty.repackaged.antlr</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>org.antlr</pattern>
+                      <shadedPattern>com.joestelmach.natty.repackaged.org.antlr</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>org.apache</pattern>
+                      <shadedPattern>com.joestelmach.natty.repackaged.org.apache</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>net.fortuna.ical4j</pattern>
+                      <shadedPattern>com.joestelmach.natty.repackaged.net.fortuna.ical4j</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>edu.emory</pattern>
+                      <shadedPattern>com.joestelmach.natty.repackaged.edu.emory</shadedPattern>
+                    </relocation>
+                    <relocation>
+                      <pattern>zoneinfo</pattern>
+                      <shadedPattern>com.joestelmach.natty.repackaged.zoneinfo</shadedPattern>
+                    </relocation>
+                  </relocations>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>
