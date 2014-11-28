@@ -1,21 +1,15 @@
 package com.joestelmach.natty;
 
+import junit.framework.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.text.DateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TimeZone;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import junit.framework.Assert;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 /**
  * Runs the parser through the various date formats 
@@ -41,6 +35,10 @@ public class DateTest extends AbstractTest {
     validateDate("in october 2006", 10, 1, 2006);
     validateDate("feb 1979", 2, 1, 1979);
     validateDate("jan '80", 1, 1, 1980);
+    validateDate("2006-Jun-16", 6, 16, 2006);
+    validateDate("28-Feb-2010", 2, 28, 2010);
+    validateDate("9-Apr", 4, 9, Calendar.getInstance().get(Calendar.YEAR));
+    validateDate("jan 10, '00", 1, 10, 2000);
   }
   
   @Test
@@ -56,6 +54,8 @@ public class DateTest extends AbstractTest {
     validateDate("the second of february in the year 1980", 2, 2, 1980);
     validateDate("jan. 2nd", 1, 2, Calendar.getInstance().get(Calendar.YEAR));
     validateDate("sun, nov 21 2010", 11, 21, 2010);
+    validateDate("Second Monday in October 2017", 10, 9, 2017);
+    validateDate("2nd thursday in sept. '02", 9, 12, 2002);
   }
   
   @Test
@@ -114,6 +114,20 @@ public class DateTest extends AbstractTest {
     validateDate("next september", 9, 1, 2011);
     validateDate("in a year", 2, 28, 2012);
     validateDate("in a week", 3, 7, 2011);
+    validateDate("the saturday after next", 3, 19, 2011);
+    validateDate("the monday after next", 3, 14, 2011);
+    validateDate("the monday after next monday", 3, 14, 2011);
+    validateDate("tuesday before last", 2, 15, 2011);
+    validateDate("a week from now", 3, 7, 2011);
+    validateDate("a month from today", 3, 28, 2011);
+    validateDate("a week after this friday", 3, 11, 2011);
+    validateDate("a week from this friday", 3, 11, 2011);
+    validateDate("two weeks from this friday", 3, 18, 2011);
+    validateDate("It's gonna snow! How about skiing tomorrow", 3, 1, 2011);
+    validateDate("A week on tuesday", 3, 8, 2011);
+    validateDate("A month ago", 1, 28, 2011);
+    validateDate("A week ago", 2, 21, 2011);
+    validateDate("A year ago", 2, 28, 2010);
   }
   
   @Test
@@ -273,8 +287,8 @@ public class DateTest extends AbstractTest {
     Logger logger = Logger.getLogger("com.joestelmach.natty");
     logger.setLevel(Level.FINEST);
     logger.addHandler(handler);
-    
-    String value = "clinton";
+
+    String value = "Monday after next";
 
     Parser parser = new Parser();
     List<DateGroup> groups = parser.parse(value);

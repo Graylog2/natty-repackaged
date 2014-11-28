@@ -221,7 +221,10 @@ global_date_prefix
   // 2 weeks before
   | spelled_or_int_optional_prefix WHITE_SPACE WEEK WHITE_SPACE prefix_direction
       -> prefix_direction SEEK_BY["by_week"] spelled_or_int_optional_prefix
-      
+
+  | WEEK WHITE_SPACE prefix_direction
+      -> prefix_direction SEEK_BY["by_week"] INT["1"]
+
   // 6 months before
   | spelled_or_int_optional_prefix WHITE_SPACE MONTH WHITE_SPACE prefix_direction
       -> prefix_direction SEEK_BY["by_month"] spelled_or_int_optional_prefix
@@ -243,7 +246,7 @@ global_date_prefix
   ; 
   
 prefix_direction
-  : AFTER  -> DIRECTION[">"]
+  : (AFTER | FROM | ON) -> DIRECTION[">"]
   | BEFORE -> DIRECTION["<"]
   ;
   
@@ -254,20 +257,14 @@ relaxed_date
   : (
       // The 31st of April in the year 2008
       // RFC822 style: Fri, 21 Nov 1997
-      (relaxed_day_of_week? relaxed_day_of_month_prefix? relaxed_day_of_month 
-          WHITE_SPACE (OF WHITE_SPACE)? relaxed_month relaxed_year_prefix relaxed_year)=>
-        relaxed_day_of_week? relaxed_day_of_month_prefix? relaxed_day_of_month 
-            WHITE_SPACE (OF WHITE_SPACE)? relaxed_month relaxed_year_prefix relaxed_year
-        
-      // above without the year restriction
-      | relaxed_day_of_week? relaxed_day_of_month_prefix? relaxed_day_of_month 
-            WHITE_SPACE (OF WHITE_SPACE)? relaxed_month
-    
+      relaxed_day_of_week? relaxed_day_of_month_prefix? relaxed_day_of_month
+        WHITE_SPACE (OF WHITE_SPACE)? relaxed_month (relaxed_year_prefix relaxed_year)?
+
       // Jan 21, 1997   Sun, Nov 21
       | relaxed_day_of_week? relaxed_month COMMA? WHITE_SPACE relaxed_day_of_month (relaxed_year_prefix relaxed_year)?
     ) -> ^(EXPLICIT_DATE relaxed_month relaxed_day_of_month relaxed_day_of_week? relaxed_year?)
   ;
-  
+
 relaxed_day_of_week
   : (prefix WHITE_SPACE)? day_of_week COMMA? WHITE_SPACE? -> day_of_week
   ;
@@ -324,13 +321,17 @@ relaxed_year_prefix
 
 formal_date
   // year first: 1979-02-28, 1980/01/02, etc.  full 4 digit year required to match
-  : relaxed_day_of_week? formal_year_four_digits formal_date_separator formal_month_of_year formal_date_separator formal_day_of_month
-      -> ^(EXPLICIT_DATE formal_month_of_year formal_day_of_month relaxed_day_of_week? formal_year_four_digits)
+  : relaxed_day_of_week? formal_year_four_digits formal_date_separator (formal_month_of_year | relaxed_month) formal_date_separator formal_day_of_month
+      -> ^(EXPLICIT_DATE formal_month_of_year? relaxed_month? formal_day_of_month relaxed_day_of_week? formal_year_four_digits)
       
   // year last: 1/02/1980, 2/28/79.  2 or 4 digit year is acceptable 
   | relaxed_day_of_week? formal_month_of_year formal_date_separator formal_day_of_month (formal_date_separator formal_year)?
       -> ^(EXPLICIT_DATE formal_month_of_year formal_day_of_month relaxed_day_of_week? formal_year?)
-      
+
+  // 15-Apr-2014
+  | formal_day_of_month formal_date_separator relaxed_month (formal_date_separator formal_year_four_digits)?
+      -> ^(EXPLICIT_DATE relaxed_month formal_day_of_month formal_year_four_digits?)
+
   | relaxed_month WHITE_SPACE relaxed_year
       -> ^(EXPLICIT_DATE relaxed_month ^(DAY_OF_MONTH INT["1"]) relaxed_year?)
   ;
@@ -378,9 +379,13 @@ relative_date
       -> ^(RELATIVE_DATE ^(SEEK DIRECTION[">"] SEEK_BY["by_day"] INT["0"] relaxed_month))
       
   // one month from now
-  | spelled_or_int_optional_prefix WHITE_SPACE relative_target WHITE_SPACE relative_date_suffix 
+  | spelled_or_int_optional_prefix WHITE_SPACE relative_target WHITE_SPACE relative_date_suffix
       -> ^(RELATIVE_DATE ^(SEEK relative_date_suffix spelled_or_int_optional_prefix relative_target))
-  
+
+  // a month from now
+  | relative_target WHITE_SPACE relative_date_suffix
+      -> ^(RELATIVE_DATE ^(SEEK relative_date_suffix INT["1"] relative_target))
+
   // the week after next
   | (THE WHITE_SPACE)? relative_date_span WHITE_SPACE AFTER WHITE_SPACE NEXT
       -> ^(RELATIVE_DATE ^(SEEK DIRECTION[">"] SEEK_BY["by_day"] INT["2"] relative_date_span))
@@ -420,7 +425,19 @@ explicit_relative_date
       -> ^(RELATIVE_DATE 
           ^(SEEK DIRECTION[">"] SEEK_BY["by_day"] INT["2"] SPAN["month"])
           explicit_day_of_month_part)
-          
+
+  // monday after next
+  | (explicit_day_of_week_part WHITE_SPACE AFTER WHITE_SPACE NEXT)
+      -> ^(RELATIVE_DATE
+          ^(SEEK DIRECTION[">"] SEEK_BY["by_day"] INT["2"] SPAN["week"])
+          explicit_day_of_week_part)
+
+  // saturday before last
+  | (explicit_day_of_week_part WHITE_SPACE BEFORE WHITE_SPACE LAST)
+      -> ^(RELATIVE_DATE
+          ^(SEEK DIRECTION["<"] SEEK_BY["by_day"] INT["2"] SPAN["week"])
+          explicit_day_of_week_part)
+
   // monday of last week, tuesday of next week
   | (explicit_day_of_week_part WHITE_SPACE prefix WHITE_SPACE WEEK)=>
       explicit_day_of_week_part WHITE_SPACE prefix WHITE_SPACE WEEK
@@ -551,7 +568,7 @@ relative_occurrence_index
   ;
   
 relative_target
-  : day_of_week 
+  : day_of_week
   | relaxed_month
   | relative_date_span
   ;
@@ -832,13 +849,17 @@ named_time
   ;
   
 time_zone
-  : time_zone_abbreviation
-  | time_zone_offset
+  : time_zone_plus_offset
+  | time_zone_abbreviation
   ;
   
+time_zone_plus_offset
+  : UTC? time_zone_offset -> ZONE_OFFSET[$time_zone_offset.text]
+  ;
+
+
 time_zone_offset
   : (PLUS | DASH) hours (COLON? minutes)? 
-      -> ZONE_OFFSET[$time_zone_offset.text]
   ;
       
 time_zone_abbreviation
